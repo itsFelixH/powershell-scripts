@@ -1,0 +1,1 @@
+Get-ChildItem -File -Recurse | Rename-Item -NewName { $_.Directory.Name, $_.Name -join ' - ' }
