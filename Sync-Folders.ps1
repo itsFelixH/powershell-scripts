@@ -32,6 +32,10 @@
 	FAT32 and some network shares have 2-second granularity, which can cause
 	unnecessary re-copies without tolerance.
 
+.PARAMETER LogPath
+	Optional path to a log file. Writes a timestamped record of all operations
+	performed (copies, updates, deletes, failures).
+
 .EXAMPLE
 	.\Sync-Folders.ps1 -Source "D:\Photos" -Destination "E:\Backup\Photos"
 
@@ -75,7 +79,10 @@ param(
 
 	[Parameter(Mandatory = $false)]
 	[ValidateRange(0, 60)]
-	[int]$TimeTolerance = 2
+	[int]$TimeTolerance = 2,
+
+	[Parameter(Mandatory = $false)]
+	[string]$LogPath
 )
 
 function Format-Size {
@@ -84,6 +91,14 @@ function Format-Size {
 	if ($Bytes -ge 1MB) { return "{0:N2} MB" -f ($Bytes / 1MB) }
 	if ($Bytes -ge 1KB) { return "{0:N2} KB" -f ($Bytes / 1KB) }
 	return "$Bytes B"
+}
+
+function Write-Log {
+	param([string]$Message)
+	if ($script:LogPath) {
+		$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+		"[$timestamp] $Message" | Out-File -FilePath $script:LogPath -Append -Encoding UTF8
+	}
 }
 
 function Test-Excluded {
@@ -112,11 +127,25 @@ if (-not (Test-Path $Destination)) {
 }
 $Destination = (Resolve-Path $Destination).Path.TrimEnd('\', '/')
 
+# Initialize log file
+if ($LogPath) {
+	$logDir = Split-Path $LogPath -Parent
+	if ($logDir -and -not (Test-Path $logDir)) {
+		New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+	}
+	Write-Log "=== Sync started ==="
+	Write-Log "Source: $Source"
+	Write-Log "Destination: $Destination"
+	Write-Log "Mode: $(if ($Mirror) { 'Mirror' } else { 'Additive' })"
+	if ($ExcludePattern) { Write-Log "Excluding: $($ExcludePattern -join ', ')" }
+}
+
 Write-Host "Source:      $Source"
 Write-Host "Destination: $Destination"
 Write-Host "Mode:        $(if ($Mirror) { 'Mirror (copy + delete)' } else { 'Additive (copy only)' })"
 if ($ExcludePattern) { Write-Host "Excluding:   $($ExcludePattern -join ', ')" }
 if ($TimeTolerance -ne 2) { Write-Host "Tolerance:   ${TimeTolerance}s" }
+if ($LogPath) { Write-Host "Log:         $LogPath" }
 Write-Host ""
 
 Write-Host "Scanning source..." -ForegroundColor DarkGray
@@ -190,10 +219,12 @@ foreach ($file in $sourceFiles) {
 				}
 				Copy-Item -Path $file.FullName -Destination $destPath -Force -ErrorAction Stop
 				Write-Host "  Updated: $($file.RelativePath)" -ForegroundColor Yellow
+				Write-Log "UPDATED: $($file.RelativePath) ($(Format-Size $file.Length))"
 				$updatedCount++
 				$copiedBytes += $file.Length
 			} catch {
 				Write-Host "  FAILED:  $($file.RelativePath) - $($_.Exception.Message)" -ForegroundColor Red
+				Write-Log "FAILED: $($file.RelativePath) - $($_.Exception.Message)"
 				$failedCount++
 			}
 		}
@@ -207,10 +238,12 @@ foreach ($file in $sourceFiles) {
 				}
 				Copy-Item -Path $file.FullName -Destination $destPath -Force -ErrorAction Stop
 				Write-Host "  Copied:  $($file.RelativePath)" -ForegroundColor Green
+				Write-Log "COPIED: $($file.RelativePath) ($(Format-Size $file.Length))"
 				$copiedCount++
 				$copiedBytes += $file.Length
 			} catch {
 				Write-Host "  FAILED:  $($file.RelativePath) - $($_.Exception.Message)" -ForegroundColor Red
+				Write-Log "FAILED: $($file.RelativePath) - $($_.Exception.Message)"
 				$failedCount++
 			}
 		}
@@ -236,9 +269,11 @@ if ($Mirror) {
 				try {
 					Remove-Item -Path $fullPath -Force -ErrorAction Stop
 					Write-Host "  Deleted: $relativePath" -ForegroundColor Red
+					Write-Log "DELETED: $relativePath"
 					$deletedCount++
 				} catch {
 					Write-Host "  FAILED:  Could not delete $relativePath - $($_.Exception.Message)" -ForegroundColor Red
+					Write-Log "FAILED: Could not delete $relativePath - $($_.Exception.Message)"
 					$failedCount++
 				}
 			}
@@ -269,3 +304,12 @@ if ($failedCount -gt 0) {
 	Write-Host "  Failed:  $failedCount file(s)" -ForegroundColor Red
 }
 Write-Host "  Data transferred: $(Format-Size $copiedBytes)"
+
+# Write summary to log
+if ($LogPath) {
+	Write-Log "--- Summary ---"
+	Write-Log "Copied: $copiedCount, Updated: $updatedCount, Deleted: $deletedCount, Skipped: $skippedCount, Failed: $failedCount"
+	Write-Log "Data transferred: $(Format-Size $copiedBytes)"
+	Write-Log "=== Sync completed ==="
+	Write-Host "  Log written to: $LogPath"
+}
