@@ -12,9 +12,13 @@ A collection of useful PowerShell scripts for media file management and organiza
 | Script | Description |
 |--------|-------------|
 | `Compare-FolderContents.ps1` | Compares source and backup folders, reports missing files and size mismatches |
+| `Convert-HeicToJpg.ps1` | Batch converts .heic/.heif files to .jpg (iPhone photos) |
 | `Convert-JfifToJpg.ps1` | Batch converts .jfif files to .jpg |
 | `Convert-WebpToJpg.ps1` | Batch converts .webp files to .jpg |
 | `Export-VideoFrames.ps1` | Extracts evenly-spaced frames and keyframes from video files |
+| `Remove-DuplicateFiles.ps1` | Finds and removes duplicate files by SHA256 hash |
+| `Remove-EmptyFolders.ps1` | Cleans up empty directories recursively |
+| `Rename-FilesByDate.ps1` | Renames files using EXIF date or last modified timestamp |
 | `Rename-FileWithFolderPrefix.ps1` | Prepends the parent folder name to each file |
 
 ## Usage
@@ -42,6 +46,46 @@ Get-Help .\Compare-FolderContents.ps1 -Full
 
 ```powershell
 .\Export-VideoFrames.ps1 -Path "D:\Videos" -NumFrames 12
+```
+
+### Convert-HeicToJpg
+
+```powershell
+.\Convert-HeicToJpg.ps1 -Path "D:\iPhone-Photos"
+.\Convert-HeicToJpg.ps1 -Path "D:\Photos" -Quality 5
+```
+
+### Rename-FilesByDate
+
+```powershell
+# Rename all files to their date (2024-03-15_143022.jpg)
+.\Rename-FilesByDate.ps1 -Path "D:\Photos" -Recurse
+
+# Only rename .jpg files with custom format
+.\Rename-FilesByDate.ps1 -Path "D:\Photos" -Filter "*.jpg" -Format "yyyyMMdd_HHmmss"
+```
+
+### Remove-DuplicateFiles
+
+```powershell
+# Dry run - just show duplicates
+.\Remove-DuplicateFiles.ps1 -Path "D:\Photos"
+
+# Delete duplicates
+.\Remove-DuplicateFiles.ps1 -Path "D:\Photos" -Force
+
+# Move duplicates to a separate folder instead of deleting
+.\Remove-DuplicateFiles.ps1 -Path "D:\Photos" -MoveTo "D:\Duplicates"
+```
+
+### Remove-EmptyFolders
+
+```powershell
+# Preview which folders would be removed
+.\Remove-EmptyFolders.ps1 -Path "D:\Photos" -WhatIf
+
+# Remove all empty folders
+.\Remove-EmptyFolders.ps1 -Path "D:\Photos" -Force
 ```
 
 ### Rename-FileWithFolderPrefix
