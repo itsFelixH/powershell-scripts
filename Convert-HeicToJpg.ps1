@@ -5,8 +5,9 @@
 	Converts .heic files to .jpg format.
 
 .DESCRIPTION
-	Recursively finds all .heic/.heif files in the specified folder and converts
-	them to .jpg using ffmpeg. Skips files where the output already exists.
+	Recursively finds all .heic/.heif files in the specified folder and
+	subfolders, and converts them to .jpg using ffmpeg. Skips files where
+	the output already exists.
 
 .PARAMETER Path
 	Folder to scan for .heic files. Defaults to the current directory.

@@ -8,6 +8,7 @@
 	Scans a folder for video files and uses ffmpeg/ffprobe to extract a
 	specified number of evenly-distributed frames, the last frame, and all
 	keyframes (I-frames). Output is saved to an "output" subfolder.
+	Only processes videos in the specified folder (not recursive).
 
 .PARAMETER Path
 	Folder containing video files. Defaults to the current directory.

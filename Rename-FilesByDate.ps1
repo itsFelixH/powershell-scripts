@@ -5,10 +5,10 @@
 	Renames files using their date (EXIF or last modified).
 
 .DESCRIPTION
-	Recursively scans a folder and renames files using the pattern
-	"yyyy-MM-dd_HHmmss" based on the file's Date Taken (EXIF) metadata.
-	Falls back to LastWriteTime if no EXIF data is available.
-	Handles collisions by appending a counter suffix.
+	Scans a folder and renames files using the pattern "yyyy-MM-dd_HHmmss"
+	based on the file's Date Taken (EXIF) metadata. Falls back to LastWriteTime
+	if no EXIF data is available. Handles collisions by appending a counter
+	suffix. Use -Recurse to include subfolders.
 
 .PARAMETER Path
 	Folder to scan. Defaults to the current directory.
