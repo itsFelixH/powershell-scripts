@@ -16,10 +16,12 @@ A collection of useful PowerShell scripts for media file management and organiza
 | `Convert-JfifToJpg.ps1` | Batch converts .jfif files to .jpg |
 | `Convert-WebpToJpg.ps1` | Batch converts .webp files to .jpg |
 | `Export-VideoFrames.ps1` | Extracts evenly-spaced frames and keyframes from video files |
+| `Find-BrokenMedia.ps1` | Detects corrupt or unreadable media files using ffprobe |
 | `Remove-DuplicateFiles.ps1` | Finds and removes duplicate files by SHA256 hash |
 | `Remove-EmptyFolders.ps1` | Cleans up empty directories recursively |
 | `Rename-FilesByDate.ps1` | Renames files using EXIF date or last modified timestamp |
 | `Rename-FileWithFolderPrefix.ps1` | Prepends the parent folder name to each file |
+| `Strip-ExifData.ps1` | Removes EXIF/metadata from images for privacy |
 
 ## Usage
 
@@ -86,6 +88,26 @@ Get-Help .\Compare-FolderContents.ps1 -Full
 
 # Remove all empty folders
 .\Remove-EmptyFolders.ps1 -Path "D:\Photos" -Force
+```
+
+### Find-BrokenMedia
+
+```powershell
+# Scan and report broken files
+.\Find-BrokenMedia.ps1 -Path "D:\Photos" -Recurse
+
+# Move broken files to a separate folder
+.\Find-BrokenMedia.ps1 -Path "D:\Photos" -Recurse -MoveTo "D:\Broken"
+```
+
+### Strip-ExifData
+
+```powershell
+# Create clean copies without metadata (*_clean.jpg)
+.\Strip-ExifData.ps1 -Path "D:\Photos\ToShare"
+
+# Strip metadata in-place (overwrites originals)
+.\Strip-ExifData.ps1 -Path "D:\Photos" -Recurse -Overwrite
 ```
 
 ### Rename-FileWithFolderPrefix
