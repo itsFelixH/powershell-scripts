@@ -6,8 +6,8 @@
 
 .DESCRIPTION
 	Scans a folder recursively, groups files by SHA256 hash, and identifies
-	duplicates. By default performs a dry run showing what would be removed.
-	Use -Confirm:$false or -Force to actually delete duplicates.
+	duplicates. By default prompts for confirmation before removing.
+	Use -Confirm:$false to skip prompts, or -WhatIf to preview.
 
 	When duplicates are found, the first file (alphabetically by full path)
 	is kept and the rest are removed or moved.

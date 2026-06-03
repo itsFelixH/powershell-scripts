@@ -28,7 +28,7 @@
 param (
 	[Parameter(Mandatory = $false)]
 	[ValidateScript({ Test-Path $_ -PathType Container })]
-	[String[]]$Path = "$PSScriptRoot"
+	[string]$Path = "$PSScriptRoot"
 )
 
 $files = @(Get-ChildItem -Path $Path -File -Recurse)
