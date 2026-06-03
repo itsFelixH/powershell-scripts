@@ -117,7 +117,7 @@ if ($RemoveEmptyFolders) {
 }
 
 Write-Host ""
-Write-Host "Done. Moved: $movedCount, Collisions resolved: $collisionCount" -ForegroundColor Green
+Write-Host "Done. Moved: $movedCount, Skipped: $collisionCount collision(s) resolved" -ForegroundColor Green
 if ($RemoveEmptyFolders) {
 	Write-Host "Removed $removedFolders empty folder(s)." -ForegroundColor Green
 }

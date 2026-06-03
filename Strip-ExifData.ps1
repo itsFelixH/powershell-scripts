@@ -122,4 +122,4 @@ $files | ForEach-Object {
 }
 
 Write-Host ""
-Write-Host "Done. Processed: $processed, Failed: $failed, Total: $numFiles" -ForegroundColor Green
+Write-Host "Done. Processed: $processed, Skipped: $($numFiles - $processed - $failed), Failed: $failed" -ForegroundColor Green

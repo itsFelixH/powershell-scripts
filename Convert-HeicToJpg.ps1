@@ -76,4 +76,4 @@ $files | ForEach-Object {
 }
 
 Write-Host ""
-Write-Host "Done. Converted: $converted, Failed: $failed, Total: $numFiles" -ForegroundColor Green
+Write-Host "Done. Converted: $converted, Skipped: $($numFiles - $converted - $failed), Failed: $failed" -ForegroundColor Green
