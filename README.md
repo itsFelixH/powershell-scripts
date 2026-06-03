@@ -24,6 +24,7 @@ A collection of useful PowerShell scripts for media file management and organiza
 | `Rename-FilesByDate.ps1` | Renames files using EXIF date or last modified timestamp |
 | `Rename-FileWithFolderPrefix.ps1` | Prepends the parent folder name to each file |
 | `Strip-ExifData.ps1` | Removes EXIF/metadata from images for privacy |
+| `Sync-Folders.ps1` | One-way folder sync with mirror mode and exclude patterns |
 
 ## Usage
 
@@ -143,4 +144,20 @@ Get-Help .\Compare-FolderContents.ps1 -Full
 
 # Apply changes
 .\Rename-FileWithFolderPrefix.ps1 -Path "D:\Photos"
+```
+
+### Sync-Folders
+
+```powershell
+# Copy new and changed files to backup (additive)
+.\Sync-Folders.ps1 -Source "D:\Photos" -Destination "E:\Backup\Photos"
+
+# Full mirror: copy + delete files no longer in source
+.\Sync-Folders.ps1 -Source "D:\Photos" -Destination "E:\Backup\Photos" -Mirror
+
+# Sync while excluding certain patterns
+.\Sync-Folders.ps1 -Source "D:\Projects" -Destination "E:\Backup" -ExcludePattern "node_modules", "*.tmp", ".git"
+
+# Preview without making changes
+.\Sync-Folders.ps1 -Source "D:\Photos" -Destination "E:\Backup" -WhatIf
 ```
