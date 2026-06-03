@@ -17,6 +17,8 @@ A collection of useful PowerShell scripts for media file management and organiza
 | `Convert-WebpToJpg.ps1` | Batch converts .webp files to .jpg |
 | `Export-VideoFrames.ps1` | Extracts evenly-spaced frames and keyframes from video files |
 | `Find-BrokenMedia.ps1` | Detects corrupt or unreadable media files using ffprobe |
+| `Flatten-Folder.ps1` | Moves all files from subfolders into one flat directory |
+| `Get-FolderSize.ps1` | Displays folder sizes in a tree-like summary with visual bars |
 | `Remove-DuplicateFiles.ps1` | Finds and removes duplicate files by SHA256 hash |
 | `Remove-EmptyFolders.ps1` | Cleans up empty directories recursively |
 | `Rename-FilesByDate.ps1` | Renames files using EXIF date or last modified timestamp |
@@ -98,6 +100,29 @@ Get-Help .\Compare-FolderContents.ps1 -Full
 
 # Move broken files to a separate folder
 .\Find-BrokenMedia.ps1 -Path "D:\Photos" -Recurse -MoveTo "D:\Broken"
+```
+
+### Flatten-Folder
+
+```powershell
+# Move all files from subfolders into root
+.\Flatten-Folder.ps1 -Path "D:\Photos"
+
+# Flatten and clean up empty folders
+.\Flatten-Folder.ps1 -Path "D:\Photos" -RemoveEmptyFolders
+
+# Prefix subfolder names to avoid collisions
+.\Flatten-Folder.ps1 -Path "D:\Photos" -Prefix
+```
+
+### Get-FolderSize
+
+```powershell
+# Quick overview of subfolder sizes
+.\Get-FolderSize.ps1 -Path "D:\"
+
+# Two levels deep, top 10 only
+.\Get-FolderSize.ps1 -Path "D:\Projects" -Depth 2 -Top 10
 ```
 
 ### Strip-ExifData
