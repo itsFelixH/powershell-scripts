@@ -18,16 +18,13 @@
 .PARAMETER MoveTo
 	Instead of deleting duplicates, move them to this folder.
 
-.PARAMETER Force
-	Skip confirmation and delete/move duplicates immediately.
-
 .EXAMPLE
 	.\Remove-DuplicateFiles.ps1 -Path "D:\Photos"
 
-	Dry run - shows duplicates without removing anything.
+	Dry run - shows duplicates without removing anything (use -Confirm:$false to execute).
 
 .EXAMPLE
-	.\Remove-DuplicateFiles.ps1 -Path "D:\Photos" -Force
+	.\Remove-DuplicateFiles.ps1 -Path "D:\Photos" -Confirm:$false
 
 	Deletes all duplicate files, keeping one copy of each.
 
@@ -37,17 +34,14 @@
 	Moves duplicate files to D:\Duplicates instead of deleting them.
 #>
 
-[CmdletBinding(SupportsShouldProcess)]
+[CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
 param(
 	[Parameter(Mandatory = $false)]
 	[ValidateScript({ Test-Path $_ -PathType Container })]
 	[string]$Path = ".",
 
 	[Parameter(Mandatory = $false)]
-	[string]$MoveTo,
-
-	[Parameter(Mandatory = $false)]
-	[switch]$Force
+	[string]$MoveTo
 )
 
 # Create move-to folder if specified
@@ -115,7 +109,7 @@ foreach ($group in $duplicateGroups) {
 
 	Write-Host "  Keep: $($keep.FullName)" -ForegroundColor Green
 	foreach ($dupe in $dupes) {
-		if ($Force -or $PSCmdlet.ShouldProcess($dupe.FullName, "Remove duplicate")) {
+		if ($PSCmdlet.ShouldProcess($dupe.FullName, "Remove duplicate")) {
 			if ($MoveTo) {
 				$destination = Join-Path $MoveTo $dupe.Name
 				# Handle name collisions in the move-to folder
@@ -131,8 +125,6 @@ foreach ($group in $duplicateGroups) {
 				Write-Host "  Removed: $($dupe.FullName)" -ForegroundColor Red
 			}
 			$removedCount++
-		} else {
-			Write-Host "  Would remove: $($dupe.FullName)" -ForegroundColor DarkGray
 		}
 	}
 	Write-Host ""

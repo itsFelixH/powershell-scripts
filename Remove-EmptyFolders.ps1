@@ -12,18 +12,15 @@
 .PARAMETER Path
 	Root folder to scan. Defaults to the current directory.
 
-.PARAMETER Force
-	Remove empty folders without prompting for confirmation.
-
 .EXAMPLE
 	.\Remove-EmptyFolders.ps1 -Path "D:\Photos"
 
-	Dry run - shows which empty folders would be removed.
+	Prompts for confirmation before removing each empty folder.
 
 .EXAMPLE
-	.\Remove-EmptyFolders.ps1 -Path "D:\Photos" -Force
+	.\Remove-EmptyFolders.ps1 -Path "D:\Photos" -Confirm:$false
 
-	Removes all empty folders immediately.
+	Removes all empty folders without prompting.
 
 .EXAMPLE
 	.\Remove-EmptyFolders.ps1 -Path "D:\Photos" -WhatIf
@@ -31,14 +28,11 @@
 	Preview what would happen without making changes.
 #>
 
-[CmdletBinding(SupportsShouldProcess)]
+[CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
 param(
 	[Parameter(Mandatory = $false)]
 	[ValidateScript({ Test-Path $_ -PathType Container })]
-	[string]$Path = ".",
-
-	[Parameter(Mandatory = $false)]
-	[switch]$Force
+	[string]$Path = "."
 )
 
 Write-Host "Scanning '$Path' for empty folders..."
@@ -59,12 +53,10 @@ do {
 	}
 
 	foreach ($folder in $emptyFolders) {
-		if ($Force -or $PSCmdlet.ShouldProcess($folder.FullName, "Remove empty folder")) {
+		if ($PSCmdlet.ShouldProcess($folder.FullName, "Remove empty folder")) {
 			Remove-Item -Path $folder.FullName -Force
 			Write-Host "  Removed: $($folder.FullName)" -ForegroundColor Yellow
 			$removedCount++
-		} else {
-			Write-Host "  Empty: $($folder.FullName)" -ForegroundColor DarkGray
 		}
 	}
 } while ($emptyFolders.Count -gt 0 -and $pass -lt 100)

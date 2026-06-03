@@ -9,7 +9,7 @@
 	folder name as a prefix (e.g. "Vacation - img001.jpg"). Files that already
 	have the correct prefix are skipped.
 
-.PARAMETER BasePath
+.PARAMETER Path
 	The root folder to process. Defaults to the script's own directory.
 
 .EXAMPLE
@@ -27,17 +27,16 @@
 [CmdletBinding(SupportsShouldProcess)]
 param (
 	[Parameter(Mandatory = $false)]
-	[Alias('Path')]
 	[ValidateScript({ Test-Path $_ -PathType Container })]
-	[String[]]$BasePath = "$PSScriptRoot"
+	[String[]]$Path = "$PSScriptRoot"
 )
 
-$files = @(Get-ChildItem -Path $BasePath -File -Recurse)
+$files = @(Get-ChildItem -Path $Path -File -Recurse)
 $totalFiles = $files.Count
 $renamedCount = 0
 $skippedCount = 0
 
-Write-Host "Found $totalFiles file(s) in '$BasePath'"
+Write-Host "Found $totalFiles file(s) in '$Path'"
 
 $files | ForEach-Object {
 	$prefix = "$($_.Directory.Name) - "
