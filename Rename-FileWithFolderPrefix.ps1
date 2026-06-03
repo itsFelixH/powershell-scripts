@@ -1,22 +1,37 @@
-# Prepends the parent folder name to each file's name.
-# Usage: .\add-foldername-to-filename.ps1 -Path "C:\path\to\folder"
-# Example: Photos\Vacation\img001.jpg -> Photos\Vacation\Vacation - img001.jpg
+#Requires -Version 5.1
 
-[cmdletbinding(SupportsShouldProcess)]
+<#
+.SYNOPSIS
+	Prepends the parent folder name to each file's name.
+
+.DESCRIPTION
+	Recursively scans a directory and renames every file by adding its parent
+	folder name as a prefix (e.g. "Vacation - img001.jpg"). Files that already
+	have the correct prefix are skipped.
+
+.PARAMETER BasePath
+	The root folder to process. Defaults to the script's own directory.
+
+.EXAMPLE
+	.\Rename-FileWithFolderPrefix.ps1 -Path "D:\Photos"
+
+	Before: D:\Photos\Vacation\img001.jpg
+	After:  D:\Photos\Vacation\Vacation - img001.jpg
+
+.EXAMPLE
+	.\Rename-FileWithFolderPrefix.ps1 -Path "D:\Photos" -WhatIf
+
+	Shows what would be renamed without making changes.
+#>
+
+[CmdletBinding(SupportsShouldProcess)]
 param (
 	[Parameter(Mandatory = $false)]
 	[Alias('Path')]
+	[ValidateScript({ Test-Path $_ -PathType Container })]
 	[String[]]$BasePath = "$PSScriptRoot"
 )
 
-# Validate path
-if (-not (Test-Path $BasePath)) {
-	Write-Host "ERROR: Path not found: $BasePath" -ForegroundColor Red
-	exit 1
-}
-
-# Wrap Get-ChildItem in parentheses to finish the scan before renaming begins.
-# This prevents "moving target" errors in the pipeline.
 $files = @(Get-ChildItem -Path $BasePath -File -Recurse)
 $totalFiles = $files.Count
 $renamedCount = 0
@@ -27,11 +42,12 @@ Write-Host "Found $totalFiles file(s) in '$BasePath'"
 $files | ForEach-Object {
 	$prefix = "$($_.Directory.Name) - "
 
-	# Only rename if the file doesn't already start with the folder name prefix
 	if (-not $_.Name.StartsWith($prefix)) {
 		$newName = $prefix + $_.Name
-		$_ | Rename-Item -NewName $newName
-		$renamedCount++
+		if ($PSCmdlet.ShouldProcess($_.FullName, "Rename to '$newName'")) {
+			$_ | Rename-Item -NewName $newName
+			$renamedCount++
+		}
 	} else {
 		$skippedCount++
 	}
