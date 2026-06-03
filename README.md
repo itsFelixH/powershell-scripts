@@ -158,6 +158,9 @@ Get-Help .\Compare-FolderContents.ps1 -Full
 # Sync while excluding certain patterns
 .\Sync-Folders.ps1 -Source "D:\Projects" -Destination "E:\Backup" -ExcludePattern "node_modules", "*.tmp", ".git"
 
+# Log all operations to a file
+.\Sync-Folders.ps1 -Source "D:\Photos" -Destination "E:\Backup" -LogPath "D:\sync.log"
+
 # Preview without making changes
 .\Sync-Folders.ps1 -Source "D:\Photos" -Destination "E:\Backup" -WhatIf
 ```
