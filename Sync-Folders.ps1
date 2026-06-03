@@ -56,6 +56,10 @@ param(
 	[string]$Source,
 
 	[Parameter(Mandatory)]
+	[ValidateScript({
+		if (Test-Path $_ -PathType Leaf) { throw "Destination must be a folder, not a file: $_" }
+		return $true
+	})]
 	[string]$Destination,
 
 	[Parameter(Mandatory = $false)]
