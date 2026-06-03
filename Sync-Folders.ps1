@@ -16,17 +16,16 @@
 
 .PARAMETER Destination
 	Path to the destination folder (the copy to update).
+	Will be created if it doesn't exist.
 
 .PARAMETER Mirror
 	Remove files from destination that don't exist in source.
 	Without this flag, only new/updated files are copied (additive sync).
+	Prompts for confirmation before deleting.
 
 .PARAMETER ExcludePattern
 	Array of wildcard patterns to exclude (e.g. "*.tmp", "Thumbs.db").
-
-.PARAMETER DryRun
-	Show what would be done without copying or deleting anything.
-	Alias for -WhatIf but more discoverable.
+	Patterns are matched against each path segment and the full relative path.
 
 .EXAMPLE
 	.\Sync-Folders.ps1 -Source "D:\Photos" -Destination "E:\Backup\Photos"
@@ -50,7 +49,7 @@
 	Preview all operations without making changes.
 #>
 
-[CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Medium')]
+[CmdletBinding(SupportsShouldProcess)]
 param(
 	[Parameter(Mandatory)]
 	[ValidateScript({ Test-Path $_ -PathType Container })]
@@ -63,14 +62,8 @@ param(
 	[switch]$Mirror,
 
 	[Parameter(Mandatory = $false)]
-	[string[]]$ExcludePattern,
-
-	[Parameter(Mandatory = $false)]
-	[switch]$DryRun
+	[string[]]$ExcludePattern
 )
-
-# If -DryRun is used, enable WhatIf
-if ($DryRun) { $WhatIfPreference = $true }
 
 function Format-Size {
 	param([long]$Bytes)
@@ -87,27 +80,24 @@ function Test-Excluded {
 	)
 	if (-not $Patterns) { return $false }
 	foreach ($pattern in $Patterns) {
-		# Check each path segment against the pattern
 		$segments = $RelativePath -split '[/\\]'
 		foreach ($segment in $segments) {
 			if ($segment -like $pattern) { return $true }
 		}
-		# Also check the full relative path
 		if ($RelativePath -like $pattern) { return $true }
 	}
 	return $false
 }
 
-# Resolve source path
-$Source = (Resolve-Path $Source).Path
+# Resolve source path (trim trailing separator for consistent substring math)
+$Source = (Resolve-Path $Source).Path.TrimEnd('\', '/')
 
 # Create destination if it doesn't exist
 if (-not (Test-Path $Destination)) {
-	if ($PSCmdlet.ShouldProcess($Destination, "Create destination folder")) {
-		New-Item -ItemType Directory -Path $Destination | Out-Null
-	}
+	New-Item -ItemType Directory -Path $Destination -Force | Out-Null
+	Write-Host "Created destination: $Destination" -ForegroundColor Cyan
 }
-$Destination = (Resolve-Path $Destination).Path
+$Destination = (Resolve-Path $Destination).Path.TrimEnd('\', '/')
 
 Write-Host "Source:      $Source"
 Write-Host "Destination: $Destination"
@@ -128,16 +118,14 @@ $sourceFiles = Get-ChildItem -Path $Source -Recurse -File | ForEach-Object {
 
 # Get all destination files with relative paths
 $destFiles = @{}
-if (Test-Path $Destination) {
-	Get-ChildItem -Path $Destination -Recurse -File | ForEach-Object {
-		$relativePath = $_.FullName.Substring($Destination.Length + 1)
-		if (-not (Test-Excluded -RelativePath $relativePath -Patterns $ExcludePattern)) {
-			$destFiles[$relativePath] = [PSCustomObject]@{
-				RelativePath  = $relativePath
-				FullName      = $_.FullName
-				Length        = $_.Length
-				LastWriteTime = $_.LastWriteTime
-			}
+Get-ChildItem -Path $Destination -Recurse -File | ForEach-Object {
+	$relativePath = $_.FullName.Substring($Destination.Length + 1)
+	if (-not (Test-Excluded -RelativePath $relativePath -Patterns $ExcludePattern)) {
+		$destFiles[$relativePath] = [PSCustomObject]@{
+			RelativePath  = $relativePath
+			FullName      = $_.FullName
+			Length        = $_.Length
+			LastWriteTime = $_.LastWriteTime
 		}
 	}
 }
@@ -146,6 +134,7 @@ $copiedCount = 0
 $updatedCount = 0
 $deletedCount = 0
 $skippedCount = 0
+$failedCount = 0
 $copiedBytes = 0
 
 # Copy new and updated files
@@ -161,28 +150,38 @@ foreach ($file in $sourceFiles) {
 			continue
 		}
 
-		# File exists but is outdated or different size - update it
+		# File exists but is outdated or different size
 		if ($PSCmdlet.ShouldProcess($file.RelativePath, "Update (size: $(Format-Size $file.Length))")) {
-			$destDir = Split-Path $destPath -Parent
-			if (-not (Test-Path $destDir)) {
-				New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+			try {
+				$destDir = Split-Path $destPath -Parent
+				if (-not (Test-Path $destDir)) {
+					New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+				}
+				Copy-Item -Path $file.FullName -Destination $destPath -Force -ErrorAction Stop
+				Write-Host "  Updated: $($file.RelativePath)" -ForegroundColor Yellow
+				$updatedCount++
+				$copiedBytes += $file.Length
+			} catch {
+				Write-Host "  FAILED:  $($file.RelativePath) - $($_.Exception.Message)" -ForegroundColor Red
+				$failedCount++
 			}
-			Copy-Item -Path $file.FullName -Destination $destPath -Force
-			Write-Host "  Updated: $($file.RelativePath)" -ForegroundColor Yellow
-			$updatedCount++
-			$copiedBytes += $file.Length
 		}
 	} else {
-		# New file - copy it
+		# New file
 		if ($PSCmdlet.ShouldProcess($file.RelativePath, "Copy (size: $(Format-Size $file.Length))")) {
-			$destDir = Split-Path $destPath -Parent
-			if (-not (Test-Path $destDir)) {
-				New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+			try {
+				$destDir = Split-Path $destPath -Parent
+				if (-not (Test-Path $destDir)) {
+					New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+				}
+				Copy-Item -Path $file.FullName -Destination $destPath -Force -ErrorAction Stop
+				Write-Host "  Copied:  $($file.RelativePath)" -ForegroundColor Green
+				$copiedCount++
+				$copiedBytes += $file.Length
+			} catch {
+				Write-Host "  FAILED:  $($file.RelativePath) - $($_.Exception.Message)" -ForegroundColor Red
+				$failedCount++
 			}
-			Copy-Item -Path $file.FullName -Destination $destPath -Force
-			Write-Host "  Copied:  $($file.RelativePath)" -ForegroundColor Green
-			$copiedCount++
-			$copiedBytes += $file.Length
 		}
 	}
 }
@@ -192,26 +191,34 @@ if ($Mirror) {
 	$sourceLookup = @{}
 	$sourceFiles | ForEach-Object { $sourceLookup[$_.RelativePath] = $true }
 
-	$toDelete = $destFiles.Keys | Where-Object { -not $sourceLookup.ContainsKey($_) }
+	$toDelete = @($destFiles.Keys | Where-Object { -not $sourceLookup.ContainsKey($_) })
 
-	foreach ($relativePath in $toDelete) {
-		$fullPath = Join-Path $Destination $relativePath
-		if ($PSCmdlet.ShouldProcess($relativePath, "Delete from destination")) {
-			Remove-Item -Path $fullPath -Force
-			Write-Host "  Deleted: $relativePath" -ForegroundColor Red
-			$deletedCount++
-		}
-	}
+	if ($toDelete.Count -gt 0) {
+		Write-Host ""
+		Write-Host "  $($toDelete.Count) file(s) in destination not in source." -ForegroundColor DarkGray
 
-	# Clean up empty folders in destination after deletions
-	if ($deletedCount -gt 0) {
-		do {
-			$emptyFolders = @(Get-ChildItem -Path $Destination -Recurse -Directory |
-				Where-Object { (Get-ChildItem -Path $_.FullName -Force).Count -eq 0 })
-			foreach ($folder in $emptyFolders) {
-				Remove-Item -Path $folder.FullName -Force
+		if ($PSCmdlet.ShouldProcess("$($toDelete.Count) file(s) no longer in source", "Delete from destination")) {
+			foreach ($relativePath in $toDelete) {
+				$fullPath = Join-Path $Destination $relativePath
+				try {
+					Remove-Item -Path $fullPath -Force -ErrorAction Stop
+					Write-Host "  Deleted: $relativePath" -ForegroundColor Red
+					$deletedCount++
+				} catch {
+					Write-Host "  FAILED:  Could not delete $relativePath - $($_.Exception.Message)" -ForegroundColor Red
+					$failedCount++
+				}
 			}
-		} while ($emptyFolders.Count -gt 0)
+
+			# Clean up empty folders after deletions
+			do {
+				$emptyFolders = @(Get-ChildItem -Path $Destination -Recurse -Directory |
+					Where-Object { (Get-ChildItem -Path $_.FullName -Force).Count -eq 0 })
+				foreach ($folder in $emptyFolders) {
+					Remove-Item -Path $folder.FullName -Force
+				}
+			} while ($emptyFolders.Count -gt 0)
+		}
 	}
 }
 
@@ -222,7 +229,10 @@ Write-Host "Done." -ForegroundColor Green
 Write-Host "  Copied:  $copiedCount new file(s)" -ForegroundColor Green
 Write-Host "  Updated: $updatedCount changed file(s)" -ForegroundColor Yellow
 if ($Mirror) {
-	Write-Host "  Deleted: $deletedCount removed file(s)" -ForegroundColor Red
+	Write-Host "  Deleted: $deletedCount file(s)" -ForegroundColor Red
 }
 Write-Host "  Skipped: $skippedCount unchanged file(s)" -ForegroundColor DarkGray
+if ($failedCount -gt 0) {
+	Write-Host "  Failed:  $failedCount file(s)" -ForegroundColor Red
+}
 Write-Host "  Data transferred: $(Format-Size $copiedBytes)"
