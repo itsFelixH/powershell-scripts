@@ -1,23 +1,36 @@
-# Compare two folders to verify that a backup contains all files from the source.
-# Usage: .\compare-folders.ps1 -Source "C:\path\to\source" -Backup "C:\path\to\backup"
+#Requires -Version 5.1
 
+<#
+.SYNOPSIS
+	Compares two folders to verify a backup contains all source files.
+
+.DESCRIPTION
+	Recursively compares a source folder against a backup folder. Reports files
+	that are missing from the backup, files with size mismatches, and extra
+	files that exist only in the backup.
+
+.PARAMETER Source
+	Path to the original/source folder.
+
+.PARAMETER Backup
+	Path to the backup folder to verify.
+
+.EXAMPLE
+	.\Compare-FolderContents.ps1 -Source "D:\Photos" -Backup "E:\Photos-Backup"
+
+	Compares all files and reports any differences.
+#>
+
+[CmdletBinding()]
 param(
-	[Parameter(Mandatory=$true)]
+	[Parameter(Mandatory)]
+	[ValidateScript({ Test-Path $_ -PathType Container })]
 	[string]$Source,
 
-	[Parameter(Mandatory=$true)]
+	[Parameter(Mandatory)]
+	[ValidateScript({ Test-Path $_ -PathType Container })]
 	[string]$Backup
 )
-
-# Validate paths
-if (-not (Test-Path $Source)) {
-	Write-Host "ERROR: Source folder not found: $Source" -ForegroundColor Red
-	exit 1
-}
-if (-not (Test-Path $Backup)) {
-	Write-Host "ERROR: Backup folder not found: $Backup" -ForegroundColor Red
-	exit 1
-}
 
 Write-Host "Source: $Source"
 Write-Host "Backup: $Backup"
@@ -51,7 +64,7 @@ Write-Host ""
 $backupLookup = @{}
 $backupFiles | ForEach-Object { $backupLookup[$_.RelativePath] = $_ }
 
-# Find files missing from backup
+# Find files missing from backup or with size differences
 $missingFiles = @()
 $sizeMismatch = @()
 
@@ -85,7 +98,7 @@ if ($missingFiles.Count -eq 0 -and $sizeMismatch.Count -eq 0) {
 	}
 }
 
-# Also report extra files in backup that aren't in source
+# Report extra files in backup that aren't in source
 $sourceLookup = @{}
 $sourceFiles | ForEach-Object { $sourceLookup[$_.RelativePath] = $_ }
 
