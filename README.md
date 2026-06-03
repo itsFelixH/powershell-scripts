@@ -73,10 +73,10 @@ Get-Help .\Compare-FolderContents.ps1 -Full
 
 ```powershell
 # Dry run - just show duplicates
-.\Remove-DuplicateFiles.ps1 -Path "D:\Photos"
+.\Remove-DuplicateFiles.ps1 -Path "D:\Photos" -WhatIf
 
-# Delete duplicates
-.\Remove-DuplicateFiles.ps1 -Path "D:\Photos" -Force
+# Delete duplicates (skip confirmation)
+.\Remove-DuplicateFiles.ps1 -Path "D:\Photos" -Confirm:$false
 
 # Move duplicates to a separate folder instead of deleting
 .\Remove-DuplicateFiles.ps1 -Path "D:\Photos" -MoveTo "D:\Duplicates"
@@ -88,8 +88,8 @@ Get-Help .\Compare-FolderContents.ps1 -Full
 # Preview which folders would be removed
 .\Remove-EmptyFolders.ps1 -Path "D:\Photos" -WhatIf
 
-# Remove all empty folders
-.\Remove-EmptyFolders.ps1 -Path "D:\Photos" -Force
+# Remove all empty folders (skip confirmation)
+.\Remove-EmptyFolders.ps1 -Path "D:\Photos" -Confirm:$false
 ```
 
 ### Find-BrokenMedia
