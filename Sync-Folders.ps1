@@ -27,6 +27,11 @@
 	Array of wildcard patterns to exclude (e.g. "*.tmp", "Thumbs.db").
 	Patterns are matched against each path segment and the full relative path.
 
+.PARAMETER TimeTolerance
+	Seconds of tolerance for timestamp comparison. Defaults to 2.
+	FAT32 and some network shares have 2-second granularity, which can cause
+	unnecessary re-copies without tolerance.
+
 .EXAMPLE
 	.\Sync-Folders.ps1 -Source "D:\Photos" -Destination "E:\Backup\Photos"
 
@@ -66,7 +71,11 @@ param(
 	[switch]$Mirror,
 
 	[Parameter(Mandatory = $false)]
-	[string[]]$ExcludePattern
+	[string[]]$ExcludePattern,
+
+	[Parameter(Mandatory = $false)]
+	[ValidateRange(0, 60)]
+	[int]$TimeTolerance = 2
 )
 
 function Format-Size {
@@ -107,7 +116,10 @@ Write-Host "Source:      $Source"
 Write-Host "Destination: $Destination"
 Write-Host "Mode:        $(if ($Mirror) { 'Mirror (copy + delete)' } else { 'Additive (copy only)' })"
 if ($ExcludePattern) { Write-Host "Excluding:   $($ExcludePattern -join ', ')" }
+if ($TimeTolerance -ne 2) { Write-Host "Tolerance:   ${TimeTolerance}s" }
 Write-Host ""
+
+Write-Host "Scanning source..." -ForegroundColor DarkGray
 
 # Get all source files with relative paths
 $sourceFiles = Get-ChildItem -Path $Source -Recurse -File | ForEach-Object {
@@ -121,6 +133,7 @@ $sourceFiles = Get-ChildItem -Path $Source -Recurse -File | ForEach-Object {
 } | Where-Object { -not (Test-Excluded -RelativePath $_.RelativePath -Patterns $ExcludePattern) }
 
 # Get all destination files with relative paths
+Write-Host "Scanning destination..." -ForegroundColor DarkGray
 $destFiles = @{}
 Get-ChildItem -Path $Destination -Recurse -File | ForEach-Object {
 	$relativePath = $_.FullName.Substring($Destination.Length + 1)
@@ -140,16 +153,30 @@ $deletedCount = 0
 $skippedCount = 0
 $failedCount = 0
 $copiedBytes = 0
+$totalToProcess = ($sourceFiles | Measure-Object).Count
+$processedCount = 0
+
+Write-Host "Comparing $totalToProcess source file(s)..."
+Write-Host ""
 
 # Copy new and updated files
 foreach ($file in $sourceFiles) {
+	$processedCount++
+
+	# Progress indicator every 100 files
+	if ($processedCount % 100 -eq 0) {
+		$percent = [math]::Round(($processedCount / $totalToProcess) * 100)
+		Write-Progress -Activity "Syncing files" -Status "$processedCount / $totalToProcess ($percent%)" -PercentComplete $percent
+	}
+
 	$destPath = Join-Path $Destination $file.RelativePath
 
 	if ($destFiles.ContainsKey($file.RelativePath)) {
 		$destFile = $destFiles[$file.RelativePath]
 
-		# Skip if same size and destination is same age or newer
-		if ($destFile.Length -eq $file.Length -and $destFile.LastWriteTime -ge $file.LastWriteTime) {
+		# Skip if same size and timestamps are within tolerance
+		$timeDiff = [math]::Abs(($file.LastWriteTime - $destFile.LastWriteTime).TotalSeconds)
+		if ($destFile.Length -eq $file.Length -and $timeDiff -le $TimeTolerance) {
 			$skippedCount++
 			continue
 		}
@@ -191,6 +218,8 @@ foreach ($file in $sourceFiles) {
 }
 
 # Mirror mode: remove files from destination that don't exist in source
+Write-Progress -Activity "Syncing files" -Completed
+
 if ($Mirror) {
 	$sourceLookup = @{}
 	$sourceFiles | ForEach-Object { $sourceLookup[$_.RelativePath] = $true }
