@@ -1,18 +1,33 @@
-# Converts .webp files to .jpg using ffmpeg.
-# Usage: .\webp-to-jpg.ps1 -Path "C:\path\to\images"
+#Requires -Version 5.1
 
+<#
+.SYNOPSIS
+	Converts .webp files to .jpg format.
+
+.DESCRIPTION
+	Recursively finds all .webp files in the specified folder and converts them
+	to .jpg using ffmpeg. Skips files where the output already exists.
+
+.PARAMETER Path
+	Folder to scan for .webp files. Defaults to the current directory.
+
+.EXAMPLE
+	.\Convert-WebpToJpg.ps1 -Path "D:\Downloads"
+
+	Converts all .webp files in D:\Downloads and subfolders to .jpg.
+
+.NOTES
+	Requires ffmpeg to be installed and available in PATH.
+#>
+
+[CmdletBinding()]
 param(
 	[Parameter(Mandatory = $false)]
+	[ValidateScript({ Test-Path $_ -PathType Container })]
 	[string]$Path = "."
 )
 
-# Validate path
-if (-not (Test-Path $Path)) {
-	Write-Host "ERROR: Path not found: $Path" -ForegroundColor Red
-	exit 1
-}
-
-$files = Get-ChildItem -Path $Path -Recurse -File | Where-Object { $_.Extension -eq ".webp" }
+$files = Get-ChildItem -Path $Path -Recurse -File -Filter "*.webp"
 $numFiles = ($files | Measure-Object).Count
 
 if ($numFiles -eq 0) {
@@ -24,6 +39,7 @@ Write-Host "Converting $numFiles .webp file(s)..."
 Write-Host ""
 
 $converted = 0
+$failed = 0
 
 $files | ForEach-Object {
 	Write-Host "Processing '$($_.Name)'"
@@ -31,7 +47,6 @@ $files | ForEach-Object {
 	$inputFile = $_.FullName
 	$outputFile = Join-Path $_.DirectoryName "$($_.BaseName).jpg"
 
-	# Skip if output already exists
 	if (Test-Path $outputFile) {
 		Write-Host "  Skipped (output already exists)" -ForegroundColor Yellow
 		return
@@ -44,8 +59,9 @@ $files | ForEach-Object {
 		$script:converted++
 	} else {
 		Write-Host "  FAILED to convert." -ForegroundColor Red
+		$script:failed++
 	}
 }
 
 Write-Host ""
-Write-Host "Done. Converted $converted of $numFiles file(s)." -ForegroundColor Green
+Write-Host "Done. Converted: $converted, Failed: $failed, Total: $numFiles" -ForegroundColor Green
