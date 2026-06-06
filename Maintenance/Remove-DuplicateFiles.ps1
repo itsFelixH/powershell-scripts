@@ -49,6 +49,9 @@ if ($MoveTo -and -not (Test-Path $MoveTo)) {
 	New-Item -ItemType Directory -Path $MoveTo | Out-Null
 }
 
+# Resolve path to handle relative paths correctly
+$Path = (Resolve-Path $Path).Path
+
 Write-Host "Scanning '$Path' for duplicate files..."
 Write-Host ""
 
