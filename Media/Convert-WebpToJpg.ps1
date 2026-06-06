@@ -27,6 +27,14 @@ param(
 	[string]$Path = "."
 )
 
+if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
+	Write-Error "ffmpeg not found in PATH. Please install ffmpeg to use this script."
+	exit 1
+}
+
+# Resolve path to handle relative paths correctly
+$Path = (Resolve-Path $Path).Path
+
 $files = Get-ChildItem -Path $Path -Recurse -File -Filter "*.webp"
 $numFiles = ($files | Measure-Object).Count
 

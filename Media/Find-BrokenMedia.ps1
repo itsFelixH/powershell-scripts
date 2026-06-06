@@ -50,6 +50,9 @@ if (-not (Get-Command ffprobe -ErrorAction SilentlyContinue)) {
 	exit 1
 }
 
+# Resolve path to handle relative paths correctly
+$Path = (Resolve-Path $Path).Path
+
 $mediaExtensions = @(
 	".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif",
 	".webp", ".heic", ".heif", ".jfif", ".svg",

@@ -102,7 +102,9 @@ $files | ForEach-Object {
 # Remove empty folders if requested
 $removedFolders = 0
 if ($RemoveEmptyFolders) {
-	do {
+	$continue = $true
+	while ($continue) {
+		$continue = $false
 		$emptyFolders = @(Get-ChildItem -Path $resolvedPath -Recurse -Directory |
 			Where-Object { (Get-ChildItem -Path $_.FullName -Force).Count -eq 0 } |
 			Sort-Object { $_.FullName.Length } -Descending)
@@ -111,9 +113,10 @@ if ($RemoveEmptyFolders) {
 			if ($PSCmdlet.ShouldProcess($folder.FullName, "Remove empty folder")) {
 				Remove-Item -Path $folder.FullName -Force
 				$removedFolders++
+				$continue = $true
 			}
 		}
-	} while ($emptyFolders.Count -gt 0)
+	}
 }
 
 Write-Host ""

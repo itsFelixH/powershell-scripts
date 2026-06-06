@@ -35,6 +35,8 @@ param(
 	[string]$Path = "."
 )
 
+# Resolve path to handle relative paths correctly
+$Path = (Resolve-Path $Path).Path
 Write-Host "Scanning '$Path' for empty folders..."
 Write-Host ""
 
@@ -53,22 +55,24 @@ if ($emptyFolders.Count -eq 0) {
 Write-Host "Found $($emptyFolders.Count) empty folder(s)."
 Write-Host ""
 
-# Single confirmation for all, then process
-if ($PSCmdlet.ShouldProcess("$($emptyFolders.Count) empty folder(s) in '$Path'", "Remove")) {
-	# Loop to handle nested folders becoming empty after children are removed
-	$pass = 0
-	do {
-		$pass++
-		$emptyFolders = @(Get-ChildItem -Path $Path -Recurse -Directory |
-			Where-Object { (Get-ChildItem -Path $_.FullName -Force).Count -eq 0 } |
-			Sort-Object { $_.FullName.Length } -Descending)
+# Loop to handle nested folders becoming empty after children are removed
+$pass = 0
+$continue = $true
+while ($continue -and $pass -lt 100) {
+	$pass++
+	$continue = $false
+	$emptyFolders = @(Get-ChildItem -Path $Path -Recurse -Directory |
+		Where-Object { (Get-ChildItem -Path $_.FullName -Force).Count -eq 0 } |
+		Sort-Object { $_.FullName.Length } -Descending)
 
-		foreach ($folder in $emptyFolders) {
+	foreach ($folder in $emptyFolders) {
+		if ($PSCmdlet.ShouldProcess($folder.FullName, "Remove empty folder")) {
 			Remove-Item -Path $folder.FullName -Force
 			Write-Host "  Removed: $($folder.FullName)" -ForegroundColor Yellow
 			$removedCount++
+			$continue = $true
 		}
-	} while ($emptyFolders.Count -gt 0 -and $pass -lt 100)
+	}
 }
 
 Write-Host ""

@@ -36,6 +36,18 @@ param(
 	[int]$NumFrames = 8
 )
 
+if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
+	Write-Error "ffmpeg not found in PATH. Please install ffmpeg to use this script."
+	exit 1
+}
+if (-not (Get-Command ffprobe -ErrorAction SilentlyContinue)) {
+	Write-Error "ffprobe not found in PATH. Please install ffmpeg to use this script."
+	exit 1
+}
+
+# Resolve path to handle relative paths correctly
+$Path = (Resolve-Path $Path).Path
+
 # Create output folder
 $outputDir = Join-Path $Path "output"
 if (-not (Test-Path $outputDir)) {

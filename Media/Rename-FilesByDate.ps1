@@ -80,6 +80,9 @@ function Get-DateTaken {
 	return $null
 }
 
+# Resolve path to handle relative paths correctly
+$Path = (Resolve-Path $Path).Path
+
 $getChildItemParams = @{
 	Path   = $Path
 	File   = $true
@@ -126,15 +129,8 @@ $files | ForEach-Object {
 		$counter++
 	}
 
-	# Skip if already named correctly
-	if ($newPath -eq $_.FullName) {
-		$skippedCount++
-		return
-	}
-
 	if ($PSCmdlet.ShouldProcess($_.Name, "Rename to '$newName' ($dateSource)")) {
 		$_ | Rename-Item -NewName $newName
-		Write-Host "  $($_.Name) -> $newName ($dateSource)" -ForegroundColor Green
 		$renamedCount++
 	}
 }

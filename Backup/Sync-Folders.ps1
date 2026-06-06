@@ -279,13 +279,17 @@ if ($Mirror) {
 			}
 
 			# Clean up empty folders after deletions
-			do {
+			$continue = $true
+			while ($continue) {
+				$continue = $false
 				$emptyFolders = @(Get-ChildItem -Path $Destination -Recurse -Directory |
 					Where-Object { (Get-ChildItem -Path $_.FullName -Force).Count -eq 0 })
 				foreach ($folder in $emptyFolders) {
+					# Note: This inner cleanup doesn't re-prompt since the user already confirmed mirroring
 					Remove-Item -Path $folder.FullName -Force
+					$continue = $true
 				}
-			} while ($emptyFolders.Count -gt 0)
+			}
 		}
 	}
 }
