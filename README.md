@@ -14,8 +14,12 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ## Folder Structure
 
 - **Media/**: Scripts for converting and processing media files.
+  - `Convert-MediaFormat.ps1`: Smart conversion to JPG/MP4 (supports remuxing).
+  - `Convert-VideoToHevc.ps1`: Batch compress videos to H.265/HEVC (10-bit).
+  - `Convert-VideoToX264.ps1`: Batch compress videos to H.264 (high compatibility).
   - `Convert-HeicToJpg.ps1`: Batch convert HEIC to JPG.
   - `Convert-WebpToJpg.ps1`: Batch convert WebP to JPG.
+  - `Repair-FileExtension.ps1`: Fix corrupted suffixes and normalize extensions.
   - `Export-VideoFrames.ps1`: Extract still frames from videos.
   - `Find-BrokenMedia.ps1`: Identify corrupt image/video files.
   - `Rename-FilesByDate.ps1`: Rename files based on EXIF/Metadata date.
