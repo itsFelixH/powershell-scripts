@@ -13,7 +13,7 @@
 .PARAMETER Destination
     The directory where converted files will be saved.
 .PARAMETER BatchSize
-    Number of files to process before pausing for user input. Defaults to 3.
+    Number of files to process before pausing for review. Default is 0 (disabled).
 .PARAMETER Recurse
     Search for videos in subdirectories.
 #>
@@ -29,7 +29,7 @@ param (
     [string]$Destination,
 
     [Parameter(Mandatory = $false)]
-    [int]$BatchSize = 3,
+    [int]$BatchSize = 0,
 
     [Parameter(Mandatory = $false)]
     [switch]$Recurse
@@ -106,7 +106,7 @@ foreach ($file in $videoFiles) {
 
     # Batch pause logic
     $numRemaining = $numFiles - $numConverted
-    if ($numRemaining -gt 0 -and ($numConverted % $BatchSize) -eq 0) {
+    if ($BatchSize -gt 0 -and $numRemaining -gt 0 -and ($numConverted % $BatchSize) -eq 0) {
         Write-Host "`nBatch complete ($numConverted processed). $numRemaining remaining." -ForegroundColor Cyan
         Read-Host "Press ENTER to continue with the next batch..."
     }

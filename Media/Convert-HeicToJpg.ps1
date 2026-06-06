@@ -29,7 +29,7 @@
 	Requires ffmpeg to be installed and available in PATH.
 #>
 
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess)]
 param(
 	[Parameter(Mandatory = $false)]
 	[ValidateScript({ Test-Path $_ -PathType Container })]
@@ -40,9 +40,17 @@ param(
 	[int]$Quality = 2
 )
 
+function Format-FileSize {
+    param([long]$size)
+    if ($size -gt 1GB) { "{0:N2} GB" -f ($size / 1GB) }
+    elseif ($size -gt 1MB) { "{0:N2} MB" -f ($size / 1MB) }
+    elseif ($size -gt 1KB) { "{0:N2} KB" -f ($size / 1KB) }
+    else { "$size bytes" }
+}
+
 if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
 	Write-Error "ffmpeg not found in PATH. Please install ffmpeg to use this script."
-	exit 1
+	return
 }
 
 $Path = (Resolve-Path $Path).Path
@@ -61,21 +69,31 @@ $converted = 0
 $failed = 0
 
 $files | ForEach-Object {
-	Write-Host "Processing '$($_.Name)'"
-
 	$inputFile = $_.FullName
 	$outputFile = Join-Path $_.DirectoryName "$($_.BaseName).jpg"
 
+	Write-Host "Processing '$($_.Name)'" -ForegroundColor White
+	Write-Host "  Original Size: $(Format-FileSize -size $_.Length)" -ForegroundColor DarkGray
+
 	if (Test-Path $outputFile) {
-		Write-Host "  Skipped (output already exists)" -ForegroundColor Yellow
+		Write-Host "  Skipping: Output already exists." -ForegroundColor Yellow
 		return
 	}
 
-	ffmpeg -v quiet -stats -y -hide_banner -i $inputFile -qscale:v $Quality $outputFile
+	if ($PSCmdlet.ShouldProcess($_.Name, "Convert HEIC to JPG")) {
+		$elapsed = Measure-Command {
+			& ffmpeg -v quiet -stats -y -hide_banner -i $inputFile -qscale:v $Quality $outputFile
+		}
 
-	if ($LASTEXITCODE -eq 0) {
-		Write-Host "  Converted." -ForegroundColor Green
-		$script:converted++
+		if ($LASTEXITCODE -eq 0) {
+			$newSize = (Get-Item $outputFile).Length
+			Write-Host "  Finished in $($elapsed.TotalSeconds.ToString('F2'))s" -ForegroundColor Gray
+			Write-Host "  New Size:      $(Format-FileSize -size $newSize)" -ForegroundColor Green
+			$script:converted++
+		} else {
+			Write-Host "  FAILED to convert." -ForegroundColor Red
+			$script:failed++
+		}
 	} else {
 		Write-Host "  FAILED to convert." -ForegroundColor Red
 		$script:failed++
