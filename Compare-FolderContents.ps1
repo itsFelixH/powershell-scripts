@@ -32,18 +32,22 @@ param(
 	[string]$Backup
 )
 
+# Resolve absolute paths for consistent substring operations
+$Source = (Resolve-Path $Source).Path.TrimEnd('\', '/')
+$Backup = (Resolve-Path $Backup).Path.TrimEnd('\', '/')
+
 Write-Host "Source: $Source"
 Write-Host "Backup: $Backup"
 Write-Host ""
 
 # Get all files with relative paths
 $sourceFiles = Get-ChildItem -Path $Source -Recurse -File | ForEach-Object {
-	[PSCustomObject]@{
-		RelativePath = $_.FullName.Substring($Source.TrimEnd('\', '/').Length + 1)
-		FullName     = $_.FullName
-		Length       = $_.Length
-	}
-}
+    [PSCustomObject]@{
+        RelativePath = $_.FullName.Substring($Source.Length + 1)
+        FullName     = $_.FullName
+        Length       = $_.Length
+    }
+} 
 
 $backupFiles = Get-ChildItem -Path $Backup -Recurse -File | ForEach-Object {
 	[PSCustomObject]@{

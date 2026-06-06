@@ -45,6 +45,11 @@ param(
 	[string]$MoveTo
 )
 
+if (-not (Get-Command ffprobe -ErrorAction SilentlyContinue)) {
+	Write-Error "ffprobe (part of ffmpeg) not found in PATH. Please install ffmpeg to use this script."
+	exit 1
+}
+
 $mediaExtensions = @(
 	".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif",
 	".webp", ".heic", ".heif", ".jfif", ".svg",

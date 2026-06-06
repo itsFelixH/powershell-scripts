@@ -40,7 +40,13 @@ param(
 	[int]$Quality = 2
 )
 
-$files = Get-ChildItem -Path $Path -Recurse -File | Where-Object { $_.Extension -in ".heic", ".heif" }
+if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
+	Write-Error "ffmpeg not found in PATH. Please install ffmpeg to use this script."
+	exit 1
+}
+
+$Path = (Resolve-Path $Path).Path
+$files = Get-ChildItem -Path $Path -Recurse -File -Include *.heic, *.heif
 $numFiles = ($files | Measure-Object).Count
 
 if ($numFiles -eq 0) {
