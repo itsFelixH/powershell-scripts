@@ -28,11 +28,8 @@
 param (
 	[Parameter(Mandatory = $false)]
 	[ValidateScript({ Test-Path $_ -PathType Container })]
-	[string]$Path = "."
+	[string]$Path = "$PSScriptRoot"
 )
-
-# Resolve path to handle relative paths correctly
-$Path = (Resolve-Path $Path).Path
 
 $files = @(Get-ChildItem -Path $Path -File -Recurse)
 $totalFiles = $files.Count
